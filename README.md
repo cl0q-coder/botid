@@ -27,6 +27,10 @@ One file (`botid.go`), stdlib only. The bot names and User-Agent formats live he
 they can block in robots.txt. The crawlers take the identity from this package;
 it is not configurable per deployment.
 
+`botid.MustUserAgent()` reads the `CL0Q_NODE_ID` environment variable (the operator id
+assigned at enrollment) and exits if it is unset: a node must never crawl anonymously.
+Library users who manage the id themselves should prefer `botid.UserAgent(id)`.
+
 ## Configuration
 
 None — this is a library with no knobs.
