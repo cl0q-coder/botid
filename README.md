@@ -11,3 +11,11 @@ botid.IsOurs("cl0q-crawler")           // does this robots.txt user-agent name u
 ```
 
 Tests: `go test ./...`
+
+`botid.MustUserAgent()` reads the `CL0Q_NODE_ID` environment variable (the operator id
+assigned at enrollment) and exits if it is unset: a node must never crawl anonymously.
+Library users who manage the id themselves should prefer `botid.UserAgent(id)`.
+
+## License
+
+MIT. See `LICENSE`.
