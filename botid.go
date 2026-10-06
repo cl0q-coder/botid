@@ -11,6 +11,7 @@
 package botid
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -30,6 +31,11 @@ const (
 
 var idRE = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,31}$`)
 
+// ErrInvalidNodeID is returned by UserAgent (and UserAgentFromEnv) when the
+// node id fails validation. Test it with errors.Is; the wrapped error names
+// the offending id and restates the rule.
+var ErrInvalidNodeID = errors.New("invalid node id")
+
 // knownAgents are the robots.txt user-agent tokens that address cl0q nodes.
 // Per RFC 9309 §2.2.2, matching is prefix-based: a User-agent line binds any
 // crawler whose product token starts with the line value (case-insensitive).
@@ -42,10 +48,15 @@ var knownAgents = []string{
 	"cl0q",
 }
 
-// UserAgent builds the User-Agent for the given node id (2–32 chars of a-z, 0-9, '-' and '_').
+// UserAgent builds the User-Agent for the given node id. The id must be
+// 2-32 chars: the first char a-z or 0-9, the remaining 1-31 chars a-z, 0-9,
+// '-' or '_'. A leading '-' or '_' is rejected (an id must not look like a
+// flag), so "-lead" and "_lead" are invalid while "a_b-c1" is fine.
+// A failing id returns an error wrapping ErrInvalidNodeID.
 func UserAgent(nodeID string) (string, error) {
 	if !idRE.MatchString(nodeID) {
-		return "", fmt.Errorf("%s=%q is not a valid node id (2-32 chars: a-z, 0-9, '-', '_')", EnvNodeID, nodeID)
+		return "", fmt.Errorf("%w: %s=%q (need 2-32 chars: first a-z/0-9, rest a-z/0-9/'-'/'_')",
+			ErrInvalidNodeID, EnvNodeID, nodeID)
 	}
 	return fmt.Sprintf("Mozilla/5.0 (compatible; %s/%s; operator=%s; +%s)", Product, Version, nodeID, InfoURL), nil
 }
@@ -58,7 +69,7 @@ func UserAgentFromEnv() (string, error) {
 	id := strings.TrimSpace(os.Getenv(EnvNodeID))
 	if id == "" {
 		return "", fmt.Errorf("%s is not set. Every request a node makes names its operator; use the node id you were given "+
-			"when you enrolled (see docs/CRAWLER_NODES.md)", EnvNodeID)
+			"when you enrolled (see README.md for the node id rules)", EnvNodeID)
 	}
 	return UserAgent(id)
 }
