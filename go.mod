@@ -1,3 +1,3 @@
-module github.com/cl0q/botid
+module codeberg.org/cl0qsearch/botid
 
 go 1.25.0
