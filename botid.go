@@ -31,6 +31,18 @@ const (
 
 var idRE = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,31}$`)
 
+// knownAgents are the robots.txt user-agent tokens that address cl0q nodes.
+// Per RFC 9309 §2.2.2, matching is prefix-based: a User-agent line binds any
+// crawler whose product token starts with the line value (case-insensitive).
+var knownAgents = []string{
+	Product, // cl0q-node
+	"cl0q-crawler",
+	"cl0q-discovery",
+	"cl0q-favicon",
+	"cl0q-favicon-grabber", // former name of cl0q-favicon
+	"cl0q",
+}
+
 // UserAgent builds the User-Agent for the given node id (2–32 chars of a-z, 0-9, '-' and '_').
 func UserAgent(nodeID string) (string, error) {
 	if !idRE.MatchString(nodeID) {
@@ -53,13 +65,21 @@ func MustUserAgent() string {
 	return ua
 }
 
-// IsOurs reports whether a robots.txt User-agent value addresses cl0q nodes. Besides cl0q-node it accepts the
-// names of cl0q's own bots (cl0q-crawler, cl0q-discovery, cl0q-favicon and its former name cl0q-favicon-grabber)
+// IsOurs reports whether a robots.txt User-agent value addresses cl0q nodes.
+// Per RFC 9309 §2.2.2, matching is prefix-based: a User-agent line binds any
+// crawler whose product token starts with the line value (case-insensitive).
+// Besides cl0q-node it accepts the names of cl0q's own bots (cl0q-crawler,
+// cl0q-discovery, cl0q-favicon and its former name cl0q-favicon-grabber)
 // and plain "cl0q", so a rule a site wrote for any cl0q bot also binds every node.
 func IsOurs(agent string) bool {
-	switch strings.ToLower(strings.TrimSpace(agent)) {
-	case Product, "cl0q-crawler", "cl0q-discovery", "cl0q-favicon", "cl0q-favicon-grabber", "cl0q":
-		return true
+	agent = strings.ToLower(strings.TrimSpace(agent))
+	if agent == "" {
+		return false
+	}
+	for _, known := range knownAgents {
+		if strings.HasPrefix(known, agent) {
+			return true
+		}
 	}
 	return false
 }
