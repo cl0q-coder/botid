@@ -12,7 +12,6 @@ package botid
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -51,16 +50,26 @@ func UserAgent(nodeID string) (string, error) {
 	return fmt.Sprintf("Mozilla/5.0 (compatible; %s/%s; operator=%s; +%s)", Product, Version, nodeID, InfoURL), nil
 }
 
-// MustUserAgent reads CL0Q_NODE_ID and returns the User-Agent, or exits: a node must never crawl anonymously.
-func MustUserAgent() string {
+// UserAgentFromEnv reads CL0Q_NODE_ID and returns the User-Agent, or an
+// error: a node must never crawl anonymously, but a library must not call
+// os.Exit on its host — the caller decides how to handle a missing or
+// invalid node id.
+func UserAgentFromEnv() (string, error) {
 	id := strings.TrimSpace(os.Getenv(EnvNodeID))
 	if id == "" {
-		log.Fatalf("%s is not set. Every request a node makes names its operator; use the node id you were given "+
-			"when you enrolled (see docs/CRAWLER_NODES.md).", EnvNodeID)
+		return "", fmt.Errorf("%s is not set. Every request a node makes names its operator; use the node id you were given "+
+			"when you enrolled (see docs/CRAWLER_NODES.md)", EnvNodeID)
 	}
-	ua, err := UserAgent(id)
+	return UserAgent(id)
+}
+
+// MustUserAgent reads CL0Q_NODE_ID and returns the User-Agent, panicking if
+// the node id is missing or invalid (standard Must semantics: recoverable,
+// unlike os.Exit — the caller can recover if it wants to keep running).
+func MustUserAgent() string {
+	ua, err := UserAgentFromEnv()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return ua
 }
