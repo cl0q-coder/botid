@@ -5,13 +5,14 @@
 
 The cl0q crawler's bot identity: the User-Agent strings its crawlers send and the
 robots.txt user-agent names that address them (`cl0q-crawler`, `cl0q-discovery`,
-`cl0q-favicon`, `cl0q-node`, `cl0q`). Shared by the crawlers and the robots.txt parser
+`cl0q-favicon`, `cl0q-favicon-grabber` (former name of `cl0q-favicon`),
+`cl0q-node`, `cl0q`). Shared by the crawlers and the robots.txt parser
 so the name a site owner blocks and the name we send always match.
 
 ## Installation
 
 ```bash
-go get cl0q/botid
+go get codeberg.org/cl0qsearch/botid
 ```
 
 Requires Go 1.25+.
@@ -37,10 +38,14 @@ Library users who manage the id themselves should prefer `botid.UserAgent(id)`.
 ## Usage
 
 ```go
-import "cl0q/botid"
+import "codeberg.org/cl0qsearch/botid"
 
-// Generate a User-Agent for your crawler node
-ua, _ := botid.UserAgent("my-node")
+// Generate a User-Agent for your crawler node; always check the error,
+// a bad node id is rejected, not silently used.
+ua, err := botid.UserAgent("my-node")
+if err != nil {
+	log.Fatal(err)
+}
 // Mozilla/5.0 (compatible; cl0q-node/1.0; operator=my-node; +https://cl0q.com/bot)
 
 // Check if a robots.txt user-agent name refers to us
@@ -64,8 +69,10 @@ Library users who manage the id themselves should prefer `botid.UserAgent(id)`.
 
 ### `UserAgent(nodeID string) (string, error)`
 
-Generates a User-Agent string for the given node ID. Returns an error if the node ID
-is empty.
+Generates a User-Agent string for the given node ID. The node ID must be 2-32
+characters: the first character a-z or 0-9, the rest a-z, 0-9, '-' or '_'
+(a leading '-' or '_' is rejected). Returns an error wrapping
+`ErrInvalidNodeID` when the rule fails.
 
 ### `MustUserAgent() string`
 
@@ -75,8 +82,8 @@ For use in crawler binaries, not libraries.
 ### `IsOurs(name string) bool`
 
 Reports whether the given robots.txt user-agent name addresses a cl0q crawler.
-Matches `cl0q-crawler`, `cl0q-discovery`, `cl0q-favicon`, `cl0q-node`, and `cl0q`
-(case-insensitive).
+Matches `cl0q-crawler`, `cl0q-discovery`, `cl0q-favicon`, `cl0q-favicon-grabber`,
+`cl0q-node`, and `cl0q` (case-insensitive).
 
 ## Configuration
 

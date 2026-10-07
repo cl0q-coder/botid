@@ -1,6 +1,8 @@
 package botid
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -35,6 +37,59 @@ func TestUserAgentAcceptsServerIDs(t *testing.T) {
 			t.Errorf("node id %q should be accepted: %v", id, err)
 		}
 	}
+}
+
+func TestUserAgentAcceptsBoundaries(t *testing.T) {
+	// Exact 2-char and 32-char ids are the acceptance boundaries of idRE.
+	for _, id := range []string{"ab", "a1", strings.Repeat("a", 32), "a" + strings.Repeat("-", 31)} {
+		if _, err := UserAgent(id); err != nil {
+			t.Errorf("boundary node id %q should be accepted: %v", id, err)
+		}
+	}
+}
+
+func TestUserAgentErrorWraps(t *testing.T) {
+	_, err := UserAgent("bad id!")
+	if !errors.Is(err, ErrInvalidNodeID) {
+		t.Fatalf("expected ErrInvalidNodeID, got %v", err)
+	}
+}
+
+func FuzzUserAgent(f *testing.F) {
+	for _, id := range []string{"alice-01", "ab", "", "a", "-lead", "_lead", strings.Repeat("a", 33), "nd_d84cd67b"} {
+		f.Add(id)
+	}
+	f.Fuzz(func(t *testing.T, id string) {
+		ua, err := UserAgent(id)
+		if err != nil {
+			if !errors.Is(err, ErrInvalidNodeID) {
+				t.Fatalf("UserAgent(%q) error is not ErrInvalidNodeID: %v", id, err)
+			}
+			return
+		}
+		if !strings.Contains(ua, "operator="+id) {
+			t.Fatalf("UserAgent(%q) = %q does not carry the id", id, ua)
+		}
+	})
+}
+
+func FuzzIsOurs(f *testing.F) {
+	for _, a := range []string{"cl0q-node", "googlebot", "", "cl0q", "cl0q-favicon-grabber", "*"} {
+		f.Add(a)
+	}
+	f.Fuzz(func(t *testing.T, agent string) {
+		_ = IsOurs(agent) // must never panic, whatever the input
+	})
+}
+
+func ExampleUserAgent() {
+	ua, err := UserAgent("alice-01")
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+	fmt.Println(ua)
+	// Output: Mozilla/5.0 (compatible; cl0q-node/1.0; operator=alice-01; +https://cl0q.com/bot)
 }
 
 func TestIsOurs(t *testing.T) {
