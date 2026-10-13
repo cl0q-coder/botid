@@ -6,13 +6,13 @@ import "testing"
 // Called per robots.txt check to determine if a UA belongs to us.
 func BenchmarkIsOurs(b *testing.B) {
 	agents := []string{
-		"cl0q-node",           // exact match
-		"cl0q-node/1.0",       // prefix match
-		"cl0q-crawler",        // different known agent
-		"mozilla/5.0",         // non-match (common case)
-		"googlebot",           // non-match
-		"",                    // empty
-		"  CLOQ-NODE  ",       // case + whitespace normalization
+		"cl0q-node",     // exact match
+		"cl0q-node/1.0", // prefix match
+		"cl0q-crawler",  // different known agent
+		"mozilla/5.0",   // non-match (common case)
+		"googlebot",     // non-match
+		"",              // empty
+		"  CLOQ-NODE  ", // case + whitespace normalization
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
